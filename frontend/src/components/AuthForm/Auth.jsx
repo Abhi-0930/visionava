@@ -1,74 +1,259 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import "./Auth.css"; // Import the CSS file with the styles
+import { FaGoogle } from "react-icons/fa";
+import { GoogleLogin } from "react-google-login"; // Import the GoogleLogin component
+import { Link } from "react-router-dom";
 function AuthForm() {
-    const [view, setView] = useState("login");
-    const [formData, setFormData] = useState({ username: "", email: "", password: "" });
-    const [message, setMessage] = useState("");
-    const navigate = useNavigate();
+  const [view, setView] = useState("login");
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // State to toggle password visibility
+  const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+  useEffect(() => {
+    setIsAnimating(true);
+    const timer = setTimeout(() => {
+      setIsAnimating(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [view]);
 
-    const handleSubmit = async (e, endpoint) => {
-        e.preventDefault();
-        setMessage("");
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-        let requestData = { ...formData };
-        if (endpoint === "login") delete requestData.username;
+  const handleSubmit = async (e, endpoint) => {
+    e.preventDefault();
+    setMessage("");
 
-        try {
-            const response = await fetch(`http://localhost:3000/api/auth/${endpoint}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestData),
-            });
+    let requestData = { ...formData };
+    if (endpoint === "login") delete requestData.username;
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message);
-
-            setMessage(data.message || "Success");
-
-            if (endpoint === "login") {
-                localStorage.setItem("token", data.token);
-                navigate("/profile");
-            }
-        } catch (error) {
-            setMessage(error.message);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/auth/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestData),
         }
-    };
+      );
 
-    const handleGoogleSignIn = () => {
-        window.location.href = "http://localhost:3000/api/auth/google";
-    };
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
 
-    return (
-        <div style={{ maxWidth: "400px", margin: "50px auto", textAlign: "center", fontFamily: "Arial" }}>
-            <h2>{view === "login" ? "Login" : view === "signup" ? "Sign Up" : "Forgot Password"}</h2>
+      setMessage(data.message || "Success");
+      setMessageType("success");
 
-            <form onSubmit={(e) => handleSubmit(e, view)}>
-                {view === "signup" && (
-                    <input type="text" name="username" placeholder="Username" value={formData.username} onChange={handleChange} required />
-                )}
-                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-                {view !== "forgot-password" && (
-                    <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
-                )}
-                <button type="submit">{view === "login" ? "Login" : view === "signup" ? "Sign Up" : "Send Reset Link"}</button>
-            </form>
+      if (endpoint === "login") {
+        localStorage.setItem("token", data.token);
+        setTimeout(() => {
+          navigate("/chatbot-page");
+        }, 1000);
+      }
+    } catch (error) {
+      setMessage(error.message);
+      setMessageType("error");
+    }
+  };
 
-            <button onClick={handleGoogleSignIn} style={{ marginTop: "10px", background: "red", color: "white", padding: "10px", border: "none", cursor: "pointer" }}>
+  // Handle Google Sign-In success
+  // const handleGoogleSuccess = (response) => {
+  //   console.log("Google login success:", response);
+  //   const { tokenId } = response; // Google access token
+
+  //   // Send the token to your backend for verification
+  //   fetch("http://localhost:3000/api/auth/google", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify({ token: tokenId }),
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       if (data.token) {
+  //         localStorage.setItem("token", data.token); // Store the token
+  //         navigate("/chatbot-page"); // Redirect to the chatbot page
+  //       }
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error verifying token:", error);
+  //       setMessage("Google Sign-In failed. Please try again.");
+  //       setMessageType("error");
+  //     });
+  // };
+
+  // Handle Google Sign-In failure
+  // const handleGoogleFailure = (error) => {
+  //   console.error("Google login failed:", error);
+  //   setMessage("Google Sign-In failed. Please try again.");
+  //   setMessageType("error");
+  // };
+
+  const changeView = (newView) => {
+    setIsAnimating(true);
+    setFormData({ username: "", email: "", password: "" });
+    setMessage("");
+
+    setTimeout(() => {
+      setView(newView);
+    }, 200);
+  };
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible((prevState) => !prevState);
+  };
+
+  return (
+    <>
+      <h1 className="heading">
+        <Link to='/'>Empathy AI</Link>
+      </h1>
+      <div className="auth-container">
+        <h2 className="auth-title">
+          {view === "login"
+            ? "Welcome Back"
+            : view === "signup"
+            ? "Create Account"
+            : "Reset Password"}
+        </h2>
+
+        <form
+          className={`auth-form ${isAnimating ? "form-slide" : ""}`}
+          onSubmit={(e) => handleSubmit(e, view)}
+        >
+          {view === "signup" && (
+            <div className="input-field">
+              <input
+                type="text"
+                name="username"
+                className="auth-input"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                placeholder=" "
+              />
+              <label className="input-label">Username</label>
+            </div>
+          )}
+
+          <div className="input-field">
+            <input
+              type="email"
+              name="email"
+              className="auth-input"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder=" "
+            />
+            <label className="input-label">Email</label>
+          </div>
+
+          {view !== "forgot-password" && (
+            <div className="input-field">
+              <input
+                type={isPasswordVisible ? "text" : "password"} // Toggle password type
+                name="password"
+                className="auth-input"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder=" "
+              />
+              <label className="input-label">Password</label>
+              <div className="password-toggle">
+                <input
+                  type="checkbox"
+                  checked={isPasswordVisible} // Checkbox state reflects password visibility
+                  onChange={togglePasswordVisibility} // Toggle visibility
+                />
+                <label>
+                  {isPasswordVisible ? "Hide Password" : "Show Password"} {/* Text for clarity */}
+                </label>
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="submit-btn">
+            {view === "login"
+              ? "Login"
+              : view === "signup"
+              ? "Create Account"
+              : "Send Reset Link"}
+          </button>
+        </form>
+
+        {/* Conditionally render Google sign-in button */}
+        {/* {view !== "forgot-password" && (
+          <GoogleLogin
+            clientId="55873950837-821ei690l12fvfocn6moeod7ic0rtt04.apps.googleusercontent.com" // Replace with your client ID
+            buttonText="Sign in with Google"
+            onSuccess={handleGoogleSuccess}
+            onFailure={handleGoogleFailure}
+            cookiePolicy={"single_host_origin"}
+            render={(renderProps) => (
+              <button
+                onClick={renderProps.onClick}
+                disabled={renderProps.disabled}
+                className="google-btn"
+              >
+                <FaGoogle />
                 Sign in with Google
-            </button>
+              </button>
+            )}
+          />
+        )} */}
 
-            <p style={{ color: "green" }}>{message}</p>
+        {message && (
+          <div
+            className={`auth-message ${messageType} ${message ? "show" : ""}`}
+          >
+            {message}
+          </div>
+        )}
 
-            {view !== "login" && <p onClick={() => setView("login")} style={{ cursor: "pointer", color: "blue" }}>Login</p>}
-            {view !== "signup" && <p onClick={() => setView("signup")} style={{ cursor: "pointer", color: "blue" }}>Sign Up</p>}
-            {view !== "forgot-password" && <p onClick={() => setView("forgot-password")} style={{ cursor: "pointer", color: "blue" }}>Forgot Password?</p>}
+        <div className="auth-nav">
+          {view !== "login" && (
+            <span
+              className={`auth-nav-item ${view === "login" ? "active" : ""}`}
+              onClick={() => changeView("login")}
+            >
+              Login
+            </span>
+          )}
+
+          {view !== "signup" && (
+            <span
+              className={`auth-nav-item ${view === "signup" ? "active" : ""}`}
+              onClick={() => changeView("signup")}
+            >
+              Sign Up
+            </span>
+          )}
+
+          {view !== "forgot-password" && (
+            <span
+              className={`auth-nav-item ${
+                view === "forgot-password" ? "active" : ""
+              }`}
+              onClick={() => changeView("forgot-password")}
+            >
+              Forgot Password?
+            </span>
+          )}
         </div>
-    );
+      </div>
+    </>
+  );
 }
 
 export default AuthForm;

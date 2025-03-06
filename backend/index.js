@@ -3,10 +3,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/user.route.js";
 import cors from "cors";
-import passport from "passport";
-import session from "express-session";
-import "./config/passport.js";
-
+import UsersChat from "./models/user.chat.model.js";
 dotenv.config();
 connectDB();
 
@@ -23,9 +20,7 @@ app.use(cors({
 app.use(express.json()); 
 
 app.use("/api/auth", authRoutes);
-app.use(session({ secret: "secret", resave: false, saveUninitialized: true }));
-app.use(passport.initialize());
-app.use(passport.session());
+
 app.get("/", (req, res) => {
     res.send("Hello, Visionava!");
 });
